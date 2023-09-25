@@ -1,0 +1,15 @@
+{
+  "_output_dir": "/Users/agmo/projects",
+  "_repo_dir": "/Users/agmo/.cookiecutters/cookiecutter-hypermodern-python",
+  "_template": "gh:cjolowicz/cookiecutter-hypermodern-python",
+  "author": "Anders Giovanni M\u00f8ller",
+  "copyright_year": "2023",
+  "development_status": "Development Status :: 1 - Planning",
+  "email": "andersgiovanni@gmail.com",
+  "friendly_name": "TikTok Dynamics",
+  "github_user": "AGMoller",
+  "license": "MIT",
+  "package_name": "tiktok_dynamics",
+  "project_name": "tiktok-dynamics",
+  "version": "0.0.0"
+}
