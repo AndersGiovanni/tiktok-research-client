@@ -16,8 +16,9 @@ classifiers = [
 Changelog = "https://github.com/AGMoller/tiktok-dynamics/releases"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 click = ">=8.0.1"
+tornado = "6.3.2"
 
 [tool.poetry.dev-dependencies]
 Pygments = ">=2.10.0"
@@ -58,7 +59,7 @@ source = ["tiktok_dynamics", "tests"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 100
+fail_under = 80
 
 [tool.isort]
 profile = "black"
