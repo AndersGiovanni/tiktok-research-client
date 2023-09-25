@@ -19,6 +19,8 @@ Changelog = "https://github.com/AGMoller/tiktok-dynamics/releases"
 python = "^3.8"
 click = ">=8.0.1"
 tornado = "6.3.2"
+python-dotenv = "^1.0.0"
+requests = "^2.31.0"
 
 [tool.poetry.dev-dependencies]
 Pygments = ">=2.10.0"
