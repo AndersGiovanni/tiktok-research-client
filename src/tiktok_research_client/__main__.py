@@ -1,14 +1,17 @@
 """Command-line interface."""
 import logging
+from typing import Any
+from typing import Dict
+from typing import Union
 
 import click
-from halo import Halo
+from halo import Halo  # type: ignore
 
-from tiktok_dynamics.config import DATA_COMMENTS_DIR
-from tiktok_dynamics.config import DATA_SEARCH_DIR
-from tiktok_dynamics.config import DATA_USER_DIR
-from tiktok_dynamics.data_collection.collect import TiktokClient
-from tiktok_dynamics.utils import save_json
+from tiktok_research_client.config import DATA_COMMENTS_DIR
+from tiktok_research_client.config import DATA_SEARCH_DIR
+from tiktok_research_client.config import DATA_USER_DIR
+from tiktok_research_client.data_collection.collect import TiktokClient
+from tiktok_research_client.utils import save_json
 
 
 @click.command()
@@ -68,7 +71,7 @@ def main(
 
     if query_option == "user":
         # Get user info
-        user_data = client.get_user(query_input)
+        user_data: Union[Dict[str, Any], None] = client.get_user(query_input)
         # Save to json
         save_json(DATA_USER_DIR / f"{query_input}.json", user_data)
 
@@ -104,4 +107,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main(prog_name="tiktok-dynamics")  # pragma: no cover
+    main(prog_name="tiktok-research-client")  # pragma: no cover

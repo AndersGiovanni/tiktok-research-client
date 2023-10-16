@@ -5,7 +5,6 @@ import os
 from typing import Any
 from typing import Dict
 from typing import List
-from typing import Optional
 from typing import Union
 
 import requests
@@ -16,9 +15,7 @@ from tenacity import retry
 from tenacity import stop_after_attempt
 from tenacity import wait_fixed
 
-from tiktok_dynamics.config import DATA_SEARCH_DIR
-from tiktok_dynamics.utils import generate_date_ranges
-from tiktok_dynamics.utils import save_json
+from tiktok_research_client.utils import generate_date_ranges
 
 
 # Set up logging
@@ -73,9 +70,9 @@ class TiktokClient:
         # Check if the response is successful
         response.raise_for_status()
 
-        return response.json()
+        return response.json()  # type: ignore
 
-    def query(self, query: Dict[Any, Any], url: str) -> Dict[str, str]:
+    def query(self, query: Dict[Any, Any], url: str) -> Union[Dict[str, Any], None]:
         """Query TikTok API.
 
         Args:
@@ -145,12 +142,12 @@ class TiktokClient:
         logging.debug("Decoding timestamps...")
         for idx, video in enumerate(videos):
             videos[idx]["create_time"] = datetime.datetime.utcfromtimestamp(
-                video["create_time"]
+                video["create_time"]  # type: ignore
             ).strftime("%Y-%m-%d")
 
         return videos
 
-    def get_user(self, username: str) -> Dict[str, str]:
+    def get_user(self, username: str) -> Union[Dict[str, Any], None]:
         """Get user data and videos from TikTok API.
 
         Args:
@@ -165,9 +162,9 @@ class TiktokClient:
             "username": username,
         }
 
-        data = self.fetch_data(url, query)
+        data: Union[Dict[str, Any], None] = self.fetch_data(url, query)
 
-        data["videos"] = self._get_user_videos(username)
+        data["videos"] = self._get_user_videos(username)  # type: ignore
 
         return data
 
@@ -176,7 +173,9 @@ class TiktokClient:
         wait=wait_fixed(2),
         before=before_log(logger, logging.DEBUG),
     )
-    def fetch_data(self, url: str, query: Dict[str, Any]) -> Dict[str, str]:
+    def fetch_data(
+        self, url: str, query: Dict[str, Any]
+    ) -> Union[Dict[str, Any], None]:
         """Query TikTok API.
 
         Args:
@@ -197,10 +196,10 @@ class TiktokClient:
             )
             response.raise_for_status()  # This will raise a HTTPError for bad responses (4xx and 5xx)
         except requests.RequestException as e:
-            logging.error(f"An error occurred: {e}")
+            logging.error("An error occurred: %s", e)
             return None  # or however you want to handle failures
-        else:
-            return response.json()  # Assuming the response is JSON formatted
+
+        return response.json()  # type: ignore
 
     def get_comments(self, video_id: str) -> List[Dict[str, str]]:
         """Get comments from TikTok API.
@@ -225,13 +224,13 @@ class TiktokClient:
         while (
             has_more_data and len(comments) < 1000
         ):  # 1000 is the max number of comments we can get
-            response: Dict[str, str] = self.fetch_data(url, query)
+            response: Union[Dict[str, Any], None] = self.fetch_data(url, query)
 
-            comments.extend(response["data"]["comments"])
+            comments.extend(response["data"]["comments"])  # type: ignore
 
-            has_more_data = response["data"]["has_more"]
+            has_more_data = response["data"]["has_more"]  # type: ignore
 
-            query["cursor"] = response["data"]["cursor"]
+            query["cursor"] = response["data"]["cursor"]  # type: ignore
 
             # Check if we have reached the max size or there is no more data
             if not has_more_data:
@@ -241,7 +240,7 @@ class TiktokClient:
         logging.debug("Decoding timestamps...")
         for idx, comment in enumerate(comments):
             comments[idx]["create_time"] = datetime.datetime.utcfromtimestamp(
-                comment["create_time"]
+                comment["create_time"]  # type: ignore
             ).strftime("%Y-%m-%d")
 
         return comments
@@ -249,9 +248,9 @@ class TiktokClient:
     def _get_user_videos(
         self,
         username: str,
-        start_date: Optional[str] = "2023-01-01",
-        max_size: Optional[int] = 1000,
-    ) -> List[Dict[str, str]]:
+        start_date: str = "2023-01-01",
+        max_size: int = 1000,
+    ) -> List[Dict[str, Any]]:
         """Get user videos from TikTok API.
 
         Args:
@@ -291,13 +290,13 @@ class TiktokClient:
         logging.debug("Decoding timestamps...")
         for idx, video in enumerate(videos):
             videos[idx]["create_time"] = datetime.datetime.utcfromtimestamp(
-                video["create_time"]
+                video["create_time"]  # type: ignore
             ).strftime("%Y-%m-%d")
 
         return videos
 
     def _cursor_iterator(
-        self, url, query, max_size: Optional[int] = 1000
+        self, url: str, query: Dict[str, Any], max_size: int = 1000
     ) -> List[Dict[str, str]]:
         """Cursor iterator.
 
@@ -311,10 +310,10 @@ class TiktokClient:
         """
         has_more_data: bool = True
 
-        data: List[Dict[str, str]] = list()
+        data: List[Dict[str, Any]] = list()
 
         while has_more_data and len(data) < max_size:
-            response: Dict[str, str] = self.fetch_data(url, query)
+            response: Union[Dict[str, Any], None] = self.fetch_data(url, query)
 
             if response is None:
                 return data
@@ -332,22 +331,3 @@ class TiktokClient:
             query["search_id"] = response["data"]["search_id"]
 
         return data
-
-
-if __name__ == "__main__":
-    client = TiktokClient()
-
-    # Get user info
-    terms = "donald trump"
-
-    data = client.search(terms.split(","), max_size=1000)
-
-    # user = "filspixel"
-
-    # data = client.get_user(user)
-
-    # data = client.get_comments("7183811462060657925")
-
-    save_json(DATA_SEARCH_DIR / f"{terms.replace(' ','_')}.json", data)
-
-    a = 1

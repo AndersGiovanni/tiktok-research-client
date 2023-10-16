@@ -9,7 +9,7 @@
   "friendly_name": "TikTok Dynamics",
   "github_user": "AGMoller",
   "license": "MIT",
-  "package_name": "tiktok_dynamics",
-  "project_name": "tiktok-dynamics",
+  "package_name": "tiktok_research_client",
+  "project_name": "tiktok-research-client",
   "version": "0.0.0"
 }

@@ -20,7 +20,9 @@ def read_json(path: Path) -> List[Dict[str, Union[str, int]]]:
     return data
 
 
-def save_json(path: Path, container: Iterable[Dict[str, Any]]) -> None:
+def save_json(
+    path: Path, container: Union[Iterable[Dict[str, Any]], Dict[str, Any], None]
+) -> None:
     """Write dict to path."""
     print(f"Saving json to {path}")
 

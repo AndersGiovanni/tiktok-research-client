@@ -22,7 +22,7 @@ except ImportError:
     raise SystemExit(dedent(message)) from None
 
 
-package = "tiktok_dynamics"
+package = "tiktok_research_client"
 python_versions = ["3.11"]
 nox.needs_version = ">= 2021.6.6"
 nox.options.sessions = (
