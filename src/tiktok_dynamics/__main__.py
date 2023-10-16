@@ -1,7 +1,11 @@
 """Command-line interface."""
-import click
+import logging
 
-from tiktok_dynamics.config import DATA_KEYWORD_DIR
+import click
+from halo import Halo
+
+from tiktok_dynamics.config import DATA_COMMENTS_DIR
+from tiktok_dynamics.config import DATA_SEARCH_DIR
 from tiktok_dynamics.config import DATA_USER_DIR
 from tiktok_dynamics.data_collection.collect import TiktokClient
 from tiktok_dynamics.utils import save_json
@@ -12,49 +16,33 @@ from tiktok_dynamics.utils import save_json
 @click.option(
     "--query_option",
     "-q",
-    type=click.Choice(["user", "keyword", "comments"]),
-    help="What do you want to query? (user, keyword, comments)",
+    type=click.Choice(["user", "search", "comments"]),
+    help="What do you want to query? (user, search, comments)",
     default="keyword",
 )
 @click.option(
     "--query_input",
     "-i",
-    help="What is the input? (username, keyword, video_id)",
+    help="What is the input? (username, search, video_id). For keywords, separate by ','.",
     required=True,
 )
-@click.option("--collect_max", "-m", help="Max number of videos to collect", default=10)
 @click.option(
-    "--start_date",
-    "-d",
-    help="What should the start date be? Default: 2022-01-01",
-    default="2022-01-01",
-)
-@click.option(
-    "--total_days",
-    "-td",
-    help="How big of a window should we look for? Collect max has higher priority. Default: 100 days",
+    "--collect_max",
+    "-m",
+    help="Max number of videos to collect (Default: 100)",
     default=100,
 )
 @click.option(
-    "--region_code",
-    "-r",
-    help="Which regions/countries? Separate by ','. Select 'ALL' for all countries. Default: US",
-    default="US",
-)
-@click.option(
-    "--collect_comments",
-    "-cc",
-    help="Do you want to collect comments for the videos? Default: False",
-    default=True,
+    "--start_date",
+    "-d",
+    help="What should the start date be? Default: 2023-01-01",
+    default="2023-01-01",
 )
 def main(
     query_option: str,
     query_input: str,
     collect_max: int,
     start_date: str,
-    total_days: int,
-    region_code: str,
-    collect_comments: bool,
 ) -> None:
     """Tikok Dynamics.
 
@@ -63,49 +51,56 @@ def main(
         query_input (str): What is the input? (username, keyword, video_id)
         collect_max (int): Max number of videos to collect
         start_date (str): What should the start date be? Default: 2022-01-01
-        total_days (int): How big of a window should we look for? Collect max has higher priority. Default: 100 days
-        region_code (str): Which regions/countries? Separate by ','. Select 'ALL' for all countries. Default: US
 
     Raises:
         ValueError: Invalid query option
-
-    Returns:
-        None
     """
     client = TiktokClient()
 
+    logging.info("Starting data collection...")
+    logging.debug(f"Query option: {query_option}")
+    logging.debug(f"Query input: {query_input}")
+    logging.debug(f"Collect max: {collect_max}")
+    logging.debug(f"Start date: {start_date}")
+
+    spinner = Halo(text="Collecting data...", spinner="moon")
+    spinner.start()
+
     if query_option == "user":
         # Get user info
-        user_data = client.get_user_info(query_input)
+        user_data = client.get_user(query_input)
         # Save to json
         save_json(DATA_USER_DIR / f"{query_input}.json", user_data)
 
-    elif query_option == "keyword":
+    elif query_option == "search":
         # Search keyword
-        keyword_data = client.search_keyword(
-            [query_input],
-            paginate=True,
-            collect_max=collect_max,
+        search_data = client.search(
+            query_input.split(","),
             start_date=start_date,
-            total_days=total_days,
-            region_code=region_code,
-            collect_comments=collect_comments,
+            max_size=collect_max,
         )
         # Save to json
-        if len(keyword_data) == 0:
+        if len(search_data) == 0:
             print("No data collected. Please try again.")
         else:
             save_json(
-                DATA_KEYWORD_DIR / f"{query_input.replace(' ','_')}.json", keyword_data
+                DATA_SEARCH_DIR / f"{query_input.replace(' ','_')}.json",
+                search_data,
             )
 
     elif query_option == "comments":
-        pass
+        # Get comments
+        comments_data = client.get_comments(query_input)
+
+        if len(comments_data) == 0:
+            print("No data collected. Please try again.")
+        else:
+            save_json(DATA_COMMENTS_DIR / f"{query_input}.json", comments_data)
 
     else:
         raise ValueError("Invalid query option")
 
-    return
+    spinner.stop()
 
 
 if __name__ == "__main__":
