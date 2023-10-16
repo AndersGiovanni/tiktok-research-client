@@ -1,4 +1,4 @@
-# TikTok Dynamics
+# TikTok Research Client
 
 [![PyPI](https://img.shields.io/pypi/v/tiktok-research-client.svg)][pypi_]
 [![Status](https://img.shields.io/pypi/status/tiktok-research-client.svg)][status]
@@ -43,7 +43,6 @@ Please see the [Command-line Reference] for details.
 To run the script, navigate to the folder containing main.py and execute the following command:
 
 ```bash
-Copy code
 python main.py [OPTIONS]
 ```
 
@@ -58,21 +57,18 @@ python main.py [OPTIONS]
 1. To get user information for the username `john_doe`:
 
 ```bash
-Copy code
 python main.py -q user -i john_doe
 ```
 
 2. To search for videos related to coding:
 
 ```bash
-Copy code
 python main.py -q search -i coding -m 50
 ```
 
 3. To get comments for a video with ID 123456789:
 
 ```bash
-Copy code
 python main.py -q comments -i 123456789
 ```
 
