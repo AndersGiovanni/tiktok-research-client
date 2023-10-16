@@ -43,33 +43,37 @@ Please see the [Command-line Reference] for details.
 To run the script, navigate to the folder containing main.py and execute the following command:
 
 ```bash
-python main.py [OPTIONS]
+tiktok-research-client [OPTIONS]
+```
+or
+```bash
+python -m tiktok-research-client [OPTIONS]
 ```
 
 ### Options
-`-q, --query_option`: What do you want to query? Choose from user, search, or comments.
-`-i, --query_input`: What is the input? For user, enter the username. For search, enter the keywords separated by commas. For comments, enter the video ID.
-`-m, --collect_max`: Maximum number of videos to collect (default is 100).
-`-d, --start_date`: The start date for data collection, formatted as YYYY-MM-DD (default is 2023-01-01).
+- `-q, --query_option`: What do you want to query? Choose from user, search, or comments.
+- `-i, --query_input`: What is the input? For user, enter the username. For search, enter the keywords separated by commas. For comments, enter the video ID.
+- `-m, --collect_max`: Maximum number of videos to collect (default is 100).
+- `-d, --start_date`: The start date for data collection, formatted as YYYY-MM-DD (default is 2023-01-01).
 
 ### Examples
 
 1. To get user information for the username `john_doe`:
 
 ```bash
-python main.py -q user -i john_doe
+tiktok-research-client -q user -i john_doe
 ```
 
 2. To search for videos related to coding:
 
 ```bash
-python main.py -q search -i coding -m 50
+tiktok-research-client -q search -i "climate,global warming" -m 50
 ```
 
 3. To get comments for a video with ID 123456789:
 
 ```bash
-python main.py -q comments -i 123456789
+tiktok-research-client -q comments -i 123456789
 ```
 
 
