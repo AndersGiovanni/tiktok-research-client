@@ -5,21 +5,20 @@ import os
 from typing import Any
 from typing import Dict
 from typing import List
-from typing import Tuple
+from typing import Optional
 from typing import Union
 
 import requests
 from dotenv import load_dotenv
 from requests.models import Response
-from tenacity import retry, stop_after_attempt, wait_fixed, before_log
+from tenacity import before_log
+from tenacity import retry
+from tenacity import stop_after_attempt
+from tenacity import wait_fixed
 
-from tiktok_dynamics.config import DATA_DIR
+from tiktok_dynamics.config import DATA_SEARCH_DIR
 from tiktok_dynamics.utils import generate_date_ranges
 from tiktok_dynamics.utils import save_json
-from tqdm import tqdm
-
-from tiktok_dynamics.config import DATA_DIR
-from tiktok_dynamics.utils import save_json, generate_date_ranges
 
 
 # Set up logging
@@ -87,30 +86,28 @@ class TiktokClient:
             Response: Response from TikTok API.
         """
 
-        headers: Dict[str, str] = self._get_headers()
+        return self.fetch_data(url, query)
 
-        response: Response = requests.post(
-            url,
-            headers=headers,
-            json=query,
-            timeout=30,
-        )
+    def search(
+        self, keywords: List[str], start_date: str, max_size: int
+    ) -> List[Dict[str, str]]:
+        """Search for videos from TikTok API.
 
-        # Check if the response is successful
-        response.raise_for_status()
+        Args:
+            keywords (List[str]): Keywords to search for.
+            start_date (str): Start date.
+            max_size (int): Max number of videos to collect.
 
-        return response.json()
-
-    def search(self, keywords: List[str], max_size: int = 1000) -> List[Dict[str, str]]:
-        headers: Dict[str, str] = self._get_headers()
-
+        Returns:
+            List[Dict[str, str]]: List of videos.
+        """
         url: str = "https://open.tiktokapis.com/v2/research/video/query/?fields=id,region_code,like_count,username,video_description,music_id,comment_count,share_count,view_count,effect_ids,hashtag_names,playlist_id,voice_to_text,create_time"  # noqa
 
-        date_ranges: List[tuple[str, str]] = generate_date_ranges("2023-01-01", 100)
+        date_ranges: List[tuple[str, str]] = generate_date_ranges(start_date, 100)
 
         query: Dict[str, Any] = {
             "query": {
-                "and": [
+                "or": [
                     {
                         "operation": "IN",
                         "field_name": "keyword",
@@ -138,11 +135,14 @@ class TiktokClient:
                 break
 
             # Keep querying until there is no more data
-            videos.extend(self._cursor_iterator(url, query))
+            output = self._cursor_iterator(url, query, max_size=max_size)
+
+            if output is not None:
+                videos.extend(self._cursor_iterator(url, query, max_size=max_size))
 
         logging.info(f"Collected {len(videos)} videos.")
 
-        logging.info("Decoding timestamps...")
+        logging.debug("Decoding timestamps...")
         for idx, video in enumerate(videos):
             videos[idx]["create_time"] = datetime.datetime.utcfromtimestamp(
                 video["create_time"]
@@ -159,7 +159,6 @@ class TiktokClient:
         Returns:
             Dict[str, str]: User info.
         """
-
         url: str = "https://open.tiktokapis.com/v2/research/user/info/?fields=display_name,bio_description,avatar_url,is_verified,follower_count,following_count,likes_count,video_count"  # noqa
 
         query: Dict[str, str] = {
@@ -175,19 +174,18 @@ class TiktokClient:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_fixed(2),
-        before=before_log(logger, logging.INFO),
+        before=before_log(logger, logging.DEBUG),
     )
     def fetch_data(self, url: str, query: Dict[str, Any]) -> Dict[str, str]:
         """Query TikTok API.
 
         Args:
             url (str): TikTok API url.
-            query (Dict[Any, Any]): Custom query. Follow the documentation from https://developers.tiktok.com/doc/research-api-specs-query-videos/ # noqa
+            query (Dict[Any, Any]): Custom query. Follow the documentation from https://developers.tiktok.com/doc/research-api-specs-query-videos/
 
         Returns:
             response (Dict[str, str]): Response from TikTok API.
         """
-
         headers: Dict[str, str] = self._get_headers()
 
         try:
@@ -204,7 +202,15 @@ class TiktokClient:
         else:
             return response.json()  # Assuming the response is JSON formatted
 
-    def _get_comments(self, video_id: int) -> List[Dict[str, str]]:
+    def get_comments(self, video_id: str) -> List[Dict[str, str]]:
+        """Get comments from TikTok API.
+
+        Args:
+            video_id (str): TikTok video id.
+
+        Returns:
+            List[Dict[str, str]]: List of comments.
+        """
         url: str = "https://open.tiktokapis.com/v2/research/video/comment/list/?fields=id,like_count,create_time,text,video_id,parent_comment_id,reply_count"
 
         query: Dict[str, Any] = {
@@ -232,20 +238,30 @@ class TiktokClient:
                 del query["cursor"]
                 break
 
+        logging.debug("Decoding timestamps...")
+        for idx, comment in enumerate(comments):
+            comments[idx]["create_time"] = datetime.datetime.utcfromtimestamp(
+                comment["create_time"]
+            ).strftime("%Y-%m-%d")
+
         return comments
 
     def _get_user_videos(
-        self, username: str, start_date: str = "2023-01-01", max_size: int = 1000
+        self,
+        username: str,
+        start_date: Optional[str] = "2023-01-01",
+        max_size: Optional[int] = 1000,
     ) -> List[Dict[str, str]]:
         """Get user videos from TikTok API.
 
         Args:
             username (str): TikTok username.
+            start_date (str, optional): Start date. Defaults to "2023-01-01".
+            max_size (int, optional): Max number of videos to collect. Defaults to 1000.
 
         Returns:
             List[Dict[str, str]]: User videos.
         """
-
         url: str = "https://open.tiktokapis.com/v2/research/video/query/?fields=id,region_code,like_count,username,video_description,music_id,comment_count,share_count,view_count,effect_ids,hashtag_names,playlist_id,voice_to_text,create_time"  # noqa
 
         date_ranges: List[tuple[str, str]] = generate_date_ranges(start_date, 1000)
@@ -272,11 +288,27 @@ class TiktokClient:
 
             videos.extend(self._cursor_iterator(url, query, max_size))
 
+        logging.debug("Decoding timestamps...")
+        for idx, video in enumerate(videos):
+            videos[idx]["create_time"] = datetime.datetime.utcfromtimestamp(
+                video["create_time"]
+            ).strftime("%Y-%m-%d")
+
         return videos
 
     def _cursor_iterator(
-        self, url, query, max_size: int = 1000
+        self, url, query, max_size: Optional[int] = 1000
     ) -> List[Dict[str, str]]:
+        """Cursor iterator.
+
+        Args:
+            url (str): TikTok API url.
+            query (Dict[str, Any]): Custom query. Follow the documentation from https://developers.tiktok.com/doc/research-api-specs-query-videos/
+            max_size (int, optional): Max number of videos to collect. Defaults to 1000.
+
+        Returns:
+            List[Dict[str, str]]: List of videos.
+        """
         has_more_data: bool = True
 
         data: List[Dict[str, str]] = list()
@@ -299,19 +331,23 @@ class TiktokClient:
 
             query["search_id"] = response["data"]["search_id"]
 
+        return data
+
 
 if __name__ == "__main__":
     client = TiktokClient()
 
     # Get user info
-    terms = ["climate", "global warming", "climate change"]
+    terms = "donald trump"
 
-    # data = client.search(terms, max_size=1000)
+    data = client.search(terms.split(","), max_size=1000)
 
-    user = "filspixel"
+    # user = "filspixel"
 
-    data = client.get_user(user)
+    # data = client.get_user(user)
 
-    save_json(DATA_DIR / f"user/{user}.json", data)
+    # data = client.get_comments("7183811462060657925")
+
+    save_json(DATA_SEARCH_DIR / f"{terms.replace(' ','_')}.json", data)
 
     a = 1
