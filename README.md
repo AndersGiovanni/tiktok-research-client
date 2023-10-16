@@ -21,25 +21,61 @@
 [pre-commit]: https://github.com/pre-commit/pre-commit
 [black]: https://github.com/psf/black
 
-## Features
-
-- TODO
+## TikTok Research Client
+TikTok Research Client is a command-line tool for collecting data from TikTok using the TikTok Research API. This tool provides a streamlined way to fetch information about users, search for videos by, and collect comments on specific videos.
 
 ## Requirements
 
-- TODO
+- Requires granted access to the [TikTok Research API](https://developers.tiktok.com/products/research-api/). Once permisison has been granted, fill out the `.env` file.
 
 ## Installation
 
-You can install _TikTok Dynamics_ via [pip] from [PyPI]:
+You can install _TikTok Research Client_ via [pip] from [PyPI]:
 
 ```console
 $ pip install tiktok-research-client
 ```
 
-## Usage
 
+## Usage
 Please see the [Command-line Reference] for details.
+
+To run the script, navigate to the folder containing main.py and execute the following command:
+
+```bash
+Copy code
+python main.py [OPTIONS]
+```
+
+### Options
+`-q, --query_option`: What do you want to query? Choose from user, search, or comments.
+`-i, --query_input`: What is the input? For user, enter the username. For search, enter the keywords separated by commas. For comments, enter the video ID.
+`-m, --collect_max`: Maximum number of videos to collect (default is 100).
+`-d, --start_date`: The start date for data collection, formatted as YYYY-MM-DD (default is 2023-01-01).
+
+### Examples
+
+1. To get user information for the username `john_doe`:
+
+```bash
+Copy code
+python main.py -q user -i john_doe
+```
+
+2. To search for videos related to coding:
+
+```bash
+Copy code
+python main.py -q search -i coding -m 50
+```
+
+3. To get comments for a video with ID 123456789:
+
+```bash
+Copy code
+python main.py -q comments -i 123456789
+```
+
 
 ## Contributing
 
@@ -49,7 +85,7 @@ To learn more, see the [Contributor Guide].
 ## License
 
 Distributed under the terms of the [MIT license][license],
-_TikTok Dynamics_ is free and open source software.
+_TikTok Research Client_ is free and open source software.
 
 ## Issues
 
