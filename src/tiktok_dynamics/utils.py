@@ -1,9 +1,9 @@
 """General utilities."""
 
 import json
+import logging
 from datetime import datetime
 from datetime import timedelta
-import logging
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -49,7 +49,7 @@ def generate_date_ranges(start_date_str: str, total_days: int) -> List[Tuple[str
     if end_date > datetime.now():
         end_date = datetime.now()
 
-    logging.info(
+    logging.debug(
         "Generating date ranges from %s to %s (%s days), with 30 days per range (max allowed by TikTok API)",  # noqa
         start_date,
         end_date,
