@@ -1,4 +1,5 @@
 """Collecting data from TikTok API."""
+import datetime
 import logging
 import os
 from typing import Any
@@ -103,9 +104,9 @@ class TiktokClient:
     def search(self, keywords: List[str], max_size: int = 1000) -> List[Dict[str, str]]:
         headers: Dict[str, str] = self._get_headers()
 
-        url: str = "https://open.tiktokapis.com/v2/research/video/query/?fields=id,region_code,like_count,username,video_description,music_id,comment_count,share_count,view_count,effect_ids,hashtag_names,playlist_id,voice_to_text"  # noqa
+        url: str = "https://open.tiktokapis.com/v2/research/video/query/?fields=id,region_code,like_count,username,video_description,music_id,comment_count,share_count,view_count,effect_ids,hashtag_names,playlist_id,voice_to_text,create_time"  # noqa
 
-        date_ranges: List[tuple[str, str]] = generate_date_ranges("20230101", 100)
+        date_ranges: List[tuple[str, str]] = generate_date_ranges("2023-01-01", 100)
 
         query: Dict[str, Any] = {
             "query": {
@@ -158,6 +159,12 @@ class TiktokClient:
 
         logging.info(f"Collected {len(data)} videos.")
 
+        logging.info(f"Decoding timestamps...")
+        for idx, video in enumerate(data):
+            data[idx]["create_time"] = datetime.datetime.utcfromtimestamp(
+                video["create_time"]
+            ).strftime("%Y-%m-%d")
+
         return data
 
     def get_user_info(self, username: str) -> Dict[str, str]:
@@ -173,21 +180,11 @@ class TiktokClient:
 
         url: str = "https://open.tiktokapis.com/v2/research/user/info/?fields=display_name,bio_description,avatar_url,is_verified,follower_count,following_count,likes_count,video_count"  # noqa
 
-        payload: Dict[str, str] = {
+        query: Dict[str, str] = {
             "username": username,
         }
 
-        response: Response = requests.post(
-            url,
-            headers=headers,
-            json=payload,
-            timeout=30,
-        )
-
-        # Check if the response is successful
-        response.raise_for_status()
-
-        data = response.json()["data"]
+        data = self.fetch_data(url, query)
 
         data["videos"] = self._get_user_videos(username)
 
@@ -352,7 +349,6 @@ class TiktokClient:
             return None  # or however you want to handle failures
         else:
             return response.json()  # Assuming the response is JSON formatted
-            data = response.json()
 
     def _get_comments(self, video_id: int, max_count: int = 10) -> List[Dict[str, str]]:
         url: str = "https://open.tiktokapis.com/v2/research/video/comment/list/?fields=id,like_count,create_time,text,video_id,parent_comment_id"
@@ -471,6 +467,8 @@ if __name__ == "__main__":
     # Get user info
     terms = ["climate", "global warming", "climate change"]
 
-    data = client.search(terms, max_size=25)
+    data = client.search(terms, max_size=1000)
 
-    # a = 1
+    save_json(DATA_DIR / "search/climate.json", data)
+
+    a = 1

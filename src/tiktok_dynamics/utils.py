@@ -23,6 +23,10 @@ def read_json(path: Path) -> List[Dict[str, Union[str, int]]]:
 def save_json(path: Path, container: Iterable[Dict[str, Any]]) -> None:
     """Write dict to path."""
     print(f"Saving json to {path}")
+
+    # Ensure the directory exists; mkdir(parents=True) will create any missing parent directories
+    path.parent.mkdir(parents=True, exist_ok=True)
+
     with open(path, "w", encoding="utf-8") as outfile:
         json.dump(container, outfile, ensure_ascii=False, indent=4)
 
