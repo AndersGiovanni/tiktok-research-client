@@ -9,9 +9,10 @@ from typing import Union
 import requests
 from dotenv import load_dotenv
 from requests.models import Response
+from tqdm import tqdm
 
 from tiktok_dynamics.config import DATA_DIR
-from tiktok_dynamics.utils import save_json
+from tiktok_dynamics.utils import save_json, generate_date_ranges
 
 
 logging.basicConfig(level=logging.INFO)
@@ -35,7 +36,7 @@ class TiktokClient:
             "Authorization": f"Bearer {access_token['access_token']}",
         }
 
-    def get_access_token(self) -> Response:
+    def get_access_token(self) -> Dict[str, str]:
         """Get access token from TikTok API.
 
         The access token is valid for 7200 seconds.
@@ -66,7 +67,7 @@ class TiktokClient:
 
         return response.json()
 
-    def get_user_info(self, username: str) -> Response:
+    def get_user_info(self, username: str) -> Dict[str, str]:
         """Get user info from TikTok API.
 
         Args:
@@ -93,10 +94,21 @@ class TiktokClient:
         # Check if the response is successful
         response.raise_for_status()
 
-        return response.json()
+        data = response.json()["data"]
+
+        data["videos"] = self._get_user_videos(username)
+
+        return data
 
     def search_keyword(
-        self, keywords: List[str], paginate: bool = False, collect_max: int = 100
+        self,
+        keywords: List[str],
+        paginate: bool = True,
+        collect_max: int = 100,
+        start_date: str = "2021-01-01",
+        total_days: int = 100,
+        region_code: str = "US",
+        collect_comments: bool = False,
     ) -> List[Dict[str, str]]:
         """Search keyword from TikTok API.
 
@@ -104,6 +116,10 @@ class TiktokClient:
             keywords (str): TikTok keyword.
             paginate (bool): Whether to paginate. Defaults to False.
             collect_max (int): Max number of videos to collect. Defaults to 100.
+            start_date (str): What should the start date be? Default: 2022-01-01
+            total_days (int): How big of a window should we look for? Collect max has higher priority. Default: 100 days
+            region_code (str): Which regions/countries? Separate by ','. Select 'ALL' for all countries. Default: US
+            collect_comments (bool): Whether to collect comments. Defaults to False.
 
         Returns:
             List[Dict[str, str]]: Keyword info.
@@ -112,14 +128,13 @@ class TiktokClient:
 
         url: str = "https://open.tiktokapis.com/v2/research/video/query/?fields=id,region_code,like_count,username,video_description,music_id,comment_count,share_count,view_count,effect_ids,hashtag_names,playlist_id,voice_to_text"  # noqa
 
+        date_ranges: List[tuple[str, str]] = generate_date_ranges(
+            start_date, total_days
+        )
+
         query: Dict[str, Any] = {
             "query": {
                 "and": [
-                    {
-                        "operation": "IN",
-                        "field_name": "region_code",
-                        "field_values": ["US", "CA"],
-                    },
                     {
                         "operation": "IN",
                         "field_name": "keyword",
@@ -127,10 +142,19 @@ class TiktokClient:
                     },
                 ]
             },
-            "start_date": "20220601",
-            "end_date": "20220630",
-            # "max_count": 10,
+            "start_date": date_ranges[0][0],
+            "end_date": date_ranges[0][1],
+            "max_count": collect_max if collect_max <= 100 else 100,
         }
+
+        if region_code != "ALL":
+            query["query"]["and"].append(
+                {
+                    "operation": "IN",
+                    "field_name": "region_code",
+                    "field_values": region_code.split(","),
+                }
+            )
 
         response: Response = requests.post(
             url,
@@ -139,16 +163,19 @@ class TiktokClient:
             timeout=30,
         )
 
+        response.raise_for_status()
+
+        date_ranges.pop(0)
+
         response_json: Dict[str, Any] = response.json()
 
         data: List[Dict[str, str]] = list()
 
         if paginate:
-            has_more: bool = True
+            # has_more: bool = True
+            has_more = response_json["data"]["has_more"]
 
-            while has_more and collect_max > len(data):
-                has_more = response_json["data"]["has_more"]
-
+            while (has_more or len(date_ranges) > 0) and collect_max > len(data):
                 query["cursor"] = response_json["data"]["cursor"]
 
                 query["search_id"] = response_json["data"]["search_id"]
@@ -162,33 +189,176 @@ class TiktokClient:
                     timeout=30,
                 )
 
+                response.raise_for_status()
+
                 response_json = response.json()
 
+                # Log start and end date
+                logging.info(
+                    f"Start date: {query['start_date']}, end date: {query['end_date']}"
+                )
                 logging.info(f"Collected {len(data)} videos.")
 
-            return data
+                has_more: bool = response_json["data"]["has_more"]
+
+                if response_json["data"]["has_more"] is False and len(date_ranges) > 0:
+                    query["start_date"] = date_ranges[0][0]
+                    query["end_date"] = date_ranges[0][1]
+
+                    date_ranges.pop(0)
+
+                    has_more = True
 
         else:
             # Check if the response is successful
             response.raise_for_status()
 
-            return response.json()
+            data = response.json()
+
+        if collect_comments:
+            for idx, video in tqdm(
+                enumerate(data),
+                desc="Collecting comments",
+                total=len(data),
+                smoothing=0.1,
+            ):
+                if video["comment_count"] > 0:
+                    comments = self._get_comments(video["id"])
+                    data[idx]["comments"] = comments
+
+        return data
+
+    def _get_comments(self, video_id: int, max_count: int = 10) -> List[Dict[str, str]]:
+        url: str = "https://open.tiktokapis.com/v2/research/video/comment/list/?fields=id,like_count,create_time,text,video_id,parent_comment_id"
+
+        headers: Dict[str, str] = self._get_headers()
+
+        query: Dict[str, Any] = {
+            "video_id": video_id,
+            "max_count": max_count if max_count <= 100 else 100,
+        }
+
+        response: Response = requests.post(
+            url,
+            headers=headers,
+            json=query,
+            timeout=30,
+        )
+
+        # if repo
+        if response.status_code == 500:
+            logging.info(f"ID: {video_id}\nError: {response.json()}")
+            return []
+
+        comments: List[Dict[str, str]] = response.json()["data"]["comments"]
+
+        if response.json()["data"]["has_more"] and len(comments) < max_count:
+            while response.json()["data"]["has_more"]:
+                query["cursor"] = response.json()["data"]["cursor"]
+                response: Response = requests.post(
+                    url,
+                    headers=headers,
+                    json=query,
+                    timeout=30,
+                )
+
+                if response.status_code == 500:
+                    logging.info(f"ID: {video_id}\nError: {response.json()}")
+                    return comments
+
+                comments.extend(response.json()["data"]["comments"])
+
+        else:
+            comments = response.json()["data"]["comments"]
+
+        return comments
+
+    def _get_user_videos(
+        self, username: str, start_date: str = "2021-01-01"
+    ) -> List[Dict[str, str]]:
+        """Get user videos from TikTok API.
+
+        Args:
+            username (str): TikTok username.
+
+        Returns:
+            List[Dict[str, str]]: User videos.
+        """
+        headers: Dict[str, str] = self._get_headers()
+
+        url: str = "https://open.tiktokapis.com/v2/research/video/query/?fields=id,region_code,like_count,username,video_description,music_id,comment_count,share_count,view_count,effect_ids,hashtag_names,playlist_id,voice_to_text"  # noqa
+
+        date_ranges: List[tuple[str, str]] = generate_date_ranges(start_date, 1000)
+
+        query: Dict[str, Any] = {
+            "query": {
+                "and": [
+                    {
+                        "operation": "EQ",
+                        "field_name": "username",
+                        "field_values": [username],
+                    },
+                ]
+            },
+            "max_count": 100,
+        }
+
+        videos: List[Dict[str, str]] = list()
+
+        for start_date, end_date in date_ranges:
+            has_more: bool = True
+
+            while has_more:
+                query["start_date"] = start_date
+                query["end_date"] = end_date
+
+                response: Response = requests.post(
+                    url,
+                    headers=headers,
+                    json=query,
+                    timeout=30,
+                )
+
+                if response.status_code == 500:
+                    logging.info(f"ID: {username}\nError: {response.json()}")
+                    return videos
+
+                videos.extend(response.json()["data"]["videos"])
+
+                has_more: bool = response.json()["data"]["has_more"]
+
+                if has_more:
+                    query["cursor"] = response.json()["data"]["cursor"]
+
+                    query["search_id"] = response.json()["data"]["search_id"]
+
+            # remove cursor and search_id
+            query.pop("cursor", None)
+            query.pop("search_id", None)
+
+        return videos
 
 
 if __name__ == "__main__":
     client = TiktokClient()
 
     # Get user info
-    user_info = client.get_user_info("joedotie")
+    user_info = client.get_user_info("loksmithofficial")
 
     print(user_info)
 
-    # Search keyword
-    keyword_info = client.search_keyword(
-        ["Donald Trump"], paginate=True, collect_max=100
-    )
+    # # Search keyword
+    # keyword_info = client.search_keyword(
+    #     ["Donald Trump"],
+    #     paginate=True,
+    #     collect_max=100,
+    #     start_date="2022-01-01",
+    #     total_days=1000,
+    #     region_code="ALL",
+    #     collect_comments=True,
+    # )
 
-    # save to json
-    save_json(DATA_DIR / "keyword_info.json", keyword_info)
+    # # save to json
+    # save_json(DATA_DIR / "keyword_info.json", keyword_info)
 
-    a = 1
+    # a = 1
