@@ -126,49 +126,32 @@ class TiktokClient:
             "max_count": 100,
         }
 
-        data: List[Dict[str, str]] = list()
+        videos: List[Dict[str, str]] = list()
 
         for date_range in date_ranges:
-            has_more_data: bool = True
-
             query["start_date"] = date_range[0]
 
             query["end_date"] = date_range[1]
 
             # Check if we have reached the max size
-            if len(data) >= max_size:
+            if len(videos) >= max_size:
                 break
 
             # Keep querying until there is no more data
-            while has_more_data:
-                response: Dict[str, str] = self.fetch_data(url, query)
+            videos.extend(self._cursor_iterator(url, query))
 
-                data.extend(response["data"]["videos"])
+        logging.info(f"Collected {len(videos)} videos.")
 
-                has_more_data = response["data"]["has_more"]
-
-                query["cursor"] = response["data"]["cursor"]
-
-                query["search_id"] = response["data"]["search_id"]
-
-                # Check if we have reached the max size or there is no more data
-                if not has_more_data or len(data) >= max_size:
-                    del query["cursor"]
-                    del query["search_id"]
-                    break
-
-        logging.info(f"Collected {len(data)} videos.")
-
-        logging.info(f"Decoding timestamps...")
-        for idx, video in enumerate(data):
-            data[idx]["create_time"] = datetime.datetime.utcfromtimestamp(
+        logging.info("Decoding timestamps...")
+        for idx, video in enumerate(videos):
+            videos[idx]["create_time"] = datetime.datetime.utcfromtimestamp(
                 video["create_time"]
             ).strftime("%Y-%m-%d")
 
-        return data
+        return videos
 
-    def get_user_info(self, username: str) -> Dict[str, str]:
-        """Get user info from TikTok API.
+    def get_user(self, username: str) -> Dict[str, str]:
+        """Get user data and videos from TikTok API.
 
         Args:
             username (str): TikTok username.
@@ -176,7 +159,6 @@ class TiktokClient:
         Returns:
             Dict[str, str]: User info.
         """
-        headers: Dict[str, str] = self._get_headers()
 
         url: str = "https://open.tiktokapis.com/v2/research/user/info/?fields=display_name,bio_description,avatar_url,is_verified,follower_count,following_count,likes_count,video_count"  # noqa
 
@@ -187,134 +169,6 @@ class TiktokClient:
         data = self.fetch_data(url, query)
 
         data["videos"] = self._get_user_videos(username)
-
-        return data
-
-    def search_keyword(
-        self,
-        keywords: List[str],
-        paginate: bool = True,
-        collect_max: int = 100,
-        start_date: str = "2021-01-01",
-        total_days: int = 100,
-        region_code: str = "US",
-        collect_comments: bool = False,
-    ) -> List[Dict[str, str]]:
-        """Search keyword from TikTok API.
-
-        Args:
-            keywords (str): TikTok keyword.
-            paginate (bool): Whether to paginate. Defaults to False.
-            start_date (str): Start date in YYYYMMDD format.
-            total_days (int): Total number of days to collect.
-            collect_max (int): Max number of videos to collect. Defaults to 100.
-            start_date (str): What should the start date be? Default: 2022-01-01
-            total_days (int): How big of a window should we look for? Collect max has higher priority. Default: 100 days
-            region_code (str): Which regions/countries? Separate by ','. Select 'ALL' for all countries. Default: US
-            collect_comments (bool): Whether to collect comments. Defaults to False.
-
-        Returns:
-            List[Dict[str, str]]: Keyword info.
-        """
-        headers: Dict[str, str] = self._get_headers()
-
-        url: str = "https://open.tiktokapis.com/v2/research/video/query/?fields=id,region_code,like_count,username,video_description,music_id,comment_count,share_count,view_count,effect_ids,hashtag_names,playlist_id,voice_to_text"  # noqa
-
-        date_ranges: List[tuple[str, str]] = generate_date_ranges(
-            start_date, total_days
-        )
-
-        query: Dict[str, Any] = {
-            "query": {
-                "and": [
-                    {
-                        "operation": "IN",
-                        "field_name": "keyword",
-                        "field_values": keywords,
-                    },
-                ]
-            },
-            "start_date": date_ranges[0][0],
-            "end_date": date_ranges[0][1],
-            "max_count": collect_max if collect_max <= 100 else 100,
-        }
-
-        if region_code != "ALL":
-            query["query"]["and"].append(
-                {
-                    "operation": "IN",
-                    "field_name": "region_code",
-                    "field_values": region_code.split(","),
-                }
-            )
-
-        response: Response = requests.post(
-            url,
-            headers=headers,
-            json=query,
-            timeout=30,
-        )
-
-        response.raise_for_status()
-
-        date_ranges.pop(0)
-
-        response_json: Dict[str, Any] = response.json()
-
-        data: List[Dict[str, str]] = list()
-
-        if paginate:
-            # has_more: bool = True
-            has_more = response_json["data"]["has_more"]
-
-            while (has_more or len(date_ranges) > 0) and collect_max > len(data):
-                query["cursor"] = response_json["data"]["cursor"]
-
-                query["search_id"] = response_json["data"]["search_id"]
-
-                data.extend(response_json["data"]["videos"])
-
-                response: Response = requests.post(
-                    url,
-                    headers=headers,
-                    json=query,
-                    timeout=30,
-                )
-
-                response.raise_for_status()
-
-                response_json = response.json()
-
-                # Log start and end date
-                logging.info(
-                    f"Start date: {query['start_date']}, end date: {query['end_date']}"
-                )
-                logging.info(f"Collected {len(data)} videos.")
-
-                has_more: bool = response_json["data"]["has_more"]
-
-                if response_json["data"]["has_more"] is False and len(date_ranges) > 0:
-                    query["start_date"] = date_ranges[0][0]
-                    query["end_date"] = date_ranges[0][1]
-
-                    date_ranges.pop(0)
-
-                    has_more = True
-
-        else:
-            # Check if the response is successful
-            response.raise_for_status()
-
-        if collect_comments:
-            for idx, video in tqdm(
-                enumerate(data),
-                desc="Collecting comments",
-                total=len(data),
-                smoothing=0.1,
-            ):
-                if video["comment_count"] > 0:
-                    comments = self._get_comments(video["id"])
-                    data[idx]["comments"] = comments
 
         return data
 
@@ -345,58 +199,43 @@ class TiktokClient:
             )
             response.raise_for_status()  # This will raise a HTTPError for bad responses (4xx and 5xx)
         except requests.RequestException as e:
-            print(f"An error occurred: {e}")
+            logging.error(f"An error occurred: {e}")
             return None  # or however you want to handle failures
         else:
             return response.json()  # Assuming the response is JSON formatted
 
-    def _get_comments(self, video_id: int, max_count: int = 10) -> List[Dict[str, str]]:
-        url: str = "https://open.tiktokapis.com/v2/research/video/comment/list/?fields=id,like_count,create_time,text,video_id,parent_comment_id"
-
-        headers: Dict[str, str] = self._get_headers()
+    def _get_comments(self, video_id: int) -> List[Dict[str, str]]:
+        url: str = "https://open.tiktokapis.com/v2/research/video/comment/list/?fields=id,like_count,create_time,text,video_id,parent_comment_id,reply_count"
 
         query: Dict[str, Any] = {
             "video_id": video_id,
-            "max_count": max_count if max_count <= 100 else 100,
+            "max_count": 100,
         }
 
-        response: Response = requests.post(
-            url,
-            headers=headers,
-            json=query,
-            timeout=30,
-        )
+        comments: List[Dict[str, str]] = list()
 
-        # if repo
-        if response.status_code == 500:
-            logging.info(f"ID: {video_id}\nError: {response.json()}")
-            return []
+        has_more_data: bool = True
 
-        comments: List[Dict[str, str]] = response.json()["data"]["comments"]
+        while (
+            has_more_data and len(comments) < 1000
+        ):  # 1000 is the max number of comments we can get
+            response: Dict[str, str] = self.fetch_data(url, query)
 
-        if response.json()["data"]["has_more"] and len(comments) < max_count:
-            while response.json()["data"]["has_more"]:
-                query["cursor"] = response.json()["data"]["cursor"]
-                response: Response = requests.post(
-                    url,
-                    headers=headers,
-                    json=query,
-                    timeout=30,
-                )
+            comments.extend(response["data"]["comments"])
 
-                if response.status_code == 500:
-                    logging.info(f"ID: {video_id}\nError: {response.json()}")
-                    return comments
+            has_more_data = response["data"]["has_more"]
 
-                comments.extend(response.json()["data"]["comments"])
+            query["cursor"] = response["data"]["cursor"]
 
-        else:
-            comments = response.json()["data"]["comments"]
+            # Check if we have reached the max size or there is no more data
+            if not has_more_data:
+                del query["cursor"]
+                break
 
         return comments
 
     def _get_user_videos(
-        self, username: str, start_date: str = "2021-01-01"
+        self, username: str, start_date: str = "2023-01-01", max_size: int = 1000
     ) -> List[Dict[str, str]]:
         """Get user videos from TikTok API.
 
@@ -406,9 +245,8 @@ class TiktokClient:
         Returns:
             List[Dict[str, str]]: User videos.
         """
-        headers: Dict[str, str] = self._get_headers()
 
-        url: str = "https://open.tiktokapis.com/v2/research/video/query/?fields=id,region_code,like_count,username,video_description,music_id,comment_count,share_count,view_count,effect_ids,hashtag_names,playlist_id,voice_to_text"  # noqa
+        url: str = "https://open.tiktokapis.com/v2/research/video/query/?fields=id,region_code,like_count,username,video_description,music_id,comment_count,share_count,view_count,effect_ids,hashtag_names,playlist_id,voice_to_text,create_time"  # noqa
 
         date_ranges: List[tuple[str, str]] = generate_date_ranges(start_date, 1000)
 
@@ -428,37 +266,38 @@ class TiktokClient:
         videos: List[Dict[str, str]] = list()
 
         for start_date, end_date in date_ranges:
-            has_more: bool = True
+            query["start_date"] = start_date
 
-            while has_more:
-                query["start_date"] = start_date
-                query["end_date"] = end_date
+            query["end_date"] = end_date
 
-                response: Response = requests.post(
-                    url,
-                    headers=headers,
-                    json=query,
-                    timeout=30,
-                )
-
-                if response.status_code == 500:
-                    logging.info(f"ID: {username}\nError: {response.json()}")
-                    return videos
-
-                videos.extend(response.json()["data"]["videos"])
-
-                has_more: bool = response.json()["data"]["has_more"]
-
-                if has_more:
-                    query["cursor"] = response.json()["data"]["cursor"]
-
-                    query["search_id"] = response.json()["data"]["search_id"]
-
-            # remove cursor and search_id
-            query.pop("cursor", None)
-            query.pop("search_id", None)
+            videos.extend(self._cursor_iterator(url, query, max_size))
 
         return videos
+
+    def _cursor_iterator(
+        self, url, query, max_size: int = 1000
+    ) -> List[Dict[str, str]]:
+        has_more_data: bool = True
+
+        data: List[Dict[str, str]] = list()
+
+        while has_more_data and len(data) < max_size:
+            response: Dict[str, str] = self.fetch_data(url, query)
+
+            if response is None:
+                return data
+
+            data.extend(response["data"]["videos"])
+
+            has_more_data = response["data"]["has_more"]
+
+            # Check if we have reached the max size or there is no more data
+            if not has_more_data:
+                return data
+
+            query["cursor"] = response["data"]["cursor"]
+
+            query["search_id"] = response["data"]["search_id"]
 
 
 if __name__ == "__main__":
@@ -467,8 +306,12 @@ if __name__ == "__main__":
     # Get user info
     terms = ["climate", "global warming", "climate change"]
 
-    data = client.search(terms, max_size=1000)
+    # data = client.search(terms, max_size=1000)
 
-    save_json(DATA_DIR / "search/climate.json", data)
+    user = "filspixel"
+
+    data = client.get_user(user)
+
+    save_json(DATA_DIR / f"user/{user}.json", data)
 
     a = 1
