@@ -23,6 +23,7 @@ python-dotenv = "^1.0.0"
 requests = "^2.31.0"
 tenacity = "^8.2.3"
 tqdm = "^4.66.1"
+halo = "^0.0.31"
 
 [tool.poetry.dev-dependencies]
 Pygments = ">=2.10.0"
