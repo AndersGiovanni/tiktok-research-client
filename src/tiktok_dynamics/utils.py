@@ -41,8 +41,12 @@ def generate_date_ranges(start_date_str: str, total_days: int) -> List[Tuple[str
     start_date = datetime.strptime(start_date_str, date_format)
     end_date = start_date + timedelta(days=total_days)
 
-    logging.info("Generating date ranges from %s to %s (%s days), with 30 days per range (max allowed by TikTok API)", # noqa
-                 start_date, end_date, total_days)
+    logging.info(
+        "Generating date ranges from %s to %s (%s days), with 30 days per range (max allowed by TikTok API)",  # noqa
+        start_date,
+        end_date,
+        total_days,
+    )
 
     date_ranges = []
 
