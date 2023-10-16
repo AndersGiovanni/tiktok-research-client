@@ -10,6 +10,6 @@ DATA_DIR = ROOT_DIR / "data"
 
 DATA_USER_DIR = DATA_DIR / "users"
 
-DATA_KEYWORD_DIR = DATA_DIR / "keywords"
+DATA_SEARCH_DIR = DATA_DIR / "search"
 
 DATA_COMMENTS_DIR = DATA_DIR / "comments"
