@@ -78,6 +78,40 @@ tiktok-research-client -q search -i "climate,global warming" -m 50
 tiktok-research-client -q comments -i 123456789
 ```
 
+### Use as python package
+
+```python
+from tiktok_research_client.data_collection.collect import TiktokClient
+
+client = TiktokClient()
+
+query = {
+    "query": {
+        "and": [
+            {
+                "operation": "IN",
+                "field_name": "region_code",
+                "field_values": ["US"],
+            },
+            {
+                "operation": "EQ",
+                "field_name": "hashtag_name",
+                "field_values": ["climate"],
+            },
+        ],
+        "not": [
+            {"operation": "EQ", "field_name": "video_length", "field_values": ["SHORT"]}
+        ],
+    },
+    "max_count": 100,
+    "start_date": "20230101",
+    "end_date": "20230115",
+}
+
+url = "https://open.tiktokapis.com/v2/research/video/query/?fields=id,region_code,like_count,username,video_description,music_id,comment_count,share_count,view_count"
+
+data = client.query(query=query, url=url)
+```
 
 ## Contributing
 
