@@ -16,7 +16,7 @@ classifiers = [
 Changelog = "https://github.com/AGMoller/tiktok-research-client/releases"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 click = ">=8.0.1"
 tornado = "6.3.2"
 python-dotenv = "^1.0.0"
