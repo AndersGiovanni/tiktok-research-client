@@ -80,7 +80,7 @@ tiktok-research-client -q comments -i 123456789
 
 ### Use custom query
 
-Check out the documentation on how to [construct](https://developers.tiktok.com/doc/research-api-specs-query-videos/) you own custom query.
+Check out the [documentation](https://developers.tiktok.com/doc/research-api-specs-query-videos/) on how to construct you own custom query.
 
 ```python
 from tiktok_research_client.data_collection.collect import TiktokClient
