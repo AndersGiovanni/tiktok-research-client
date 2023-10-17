@@ -1,8 +1,8 @@
 # Reference
 
-## tiktok_dynamics
+## tiktok_research_client
 
 ```{eval-rst}
-.. automodule:: tiktok_dynamics
+.. automodule:: tiktok_research_client
    :members:
 ```

@@ -1,24 +1,30 @@
 [tool.poetry]
-name = "tiktok-dynamics"
+name = "tiktok-research-client"
 version = "0.0.0"
-description = "TikTok Dynamics"
+description = "TikTok Research API Client"
 authors = ["Anders Giovanni Møller <andersgiovanni@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/AGMoller/tiktok-dynamics"
-repository = "https://github.com/AGMoller/tiktok-dynamics"
-documentation = "https://tiktok-dynamics.readthedocs.io"
+homepage = "https://github.com/AGMoller/tiktok-research-client"
+repository = "https://github.com/AGMoller/tiktok-research-client"
+documentation = "https://tiktok-research-client.readthedocs.io"
 classifiers = [
     "Development Status :: 1 - Planning",
 ]
 
 [tool.poetry.urls]
-Changelog = "https://github.com/AGMoller/tiktok-dynamics/releases"
+Changelog = "https://github.com/AGMoller/tiktok-research-client/releases"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 click = ">=8.0.1"
 tornado = "6.3.2"
+python-dotenv = "^1.0.0"
+requests = "^2.31.0"
+tenacity = "^8.2.3"
+tqdm = "^4.66.1"
+halo = "^0.0.31"
+types-requests = "^2.31.0.9"
 
 [tool.poetry.dev-dependencies]
 Pygments = ">=2.10.0"
@@ -47,7 +53,7 @@ xdoctest = {extras = ["colors"], version = ">=0.15.10"}
 myst-parser = {version = ">=0.16.1"}
 
 [tool.poetry.scripts]
-tiktok-dynamics = "tiktok_dynamics.__main__:main"
+tiktok-research-client = "tiktok_research_client.__main__:main"
 
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
@@ -55,7 +61,7 @@ tests = ["tests", "*/tests"]
 
 [tool.coverage.run]
 branch = true
-source = ["tiktok_dynamics", "tests"]
+source = ["tiktok_research_client", "tests"]
 
 [tool.coverage.report]
 show_missing = true

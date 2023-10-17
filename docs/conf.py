@@ -1,5 +1,5 @@
 """Sphinx configuration."""
-project = "TikTok Dynamics"
+project = "TikTok Research Client"
 author = "Anders Giovanni Møller"
 copyright = "2023, Anders Giovanni Møller"
 extensions = [
