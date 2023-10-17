@@ -20,6 +20,7 @@
 [codecov]: https://app.codecov.io/gh/AGMoller/tiktok-research-client
 [pre-commit]: https://github.com/pre-commit/pre-commit
 [black]: https://github.com/psf/black
+[license]: https://opensource.org/licenses/MIT
 
 ## TikTok Research Client
 
