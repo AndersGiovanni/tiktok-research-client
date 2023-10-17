@@ -137,6 +137,10 @@ _TikTok Research Client_ is free and open source software.
 If you encounter any problems,
 please [file an issue] along with a detailed description.
 
+## Known Issues
+
+Many. This is a super lightweight and simple client, and has not been tested extensively - actually not at all. Will do at some point. If the pre-defined CLI commands are insufficient, then just make your own query and use `query` function. 
+
 ## Credits
 
 This project was generated from [@cjolowicz]'s [Hypermodern Python Cookiecutter] template.
