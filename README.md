@@ -78,7 +78,9 @@ tiktok-research-client -q search -i "climate,global warming" -m 50
 tiktok-research-client -q comments -i 123456789
 ```
 
-### Use as python package
+### Use custom query
+
+Check out the documentation on how to [construct](https://developers.tiktok.com/doc/research-api-specs-query-videos/) you own custom query.
 
 ```python
 from tiktok_research_client.data_collection.collect import TiktokClient
