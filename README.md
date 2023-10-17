@@ -1,3 +1,5 @@
+# ![tiktok-research-client](docs/assets/banner.png)
+
 # TikTok Research Client
 
 [![PyPI](https://img.shields.io/pypi/v/tiktok-research-client.svg)][pypi_]
