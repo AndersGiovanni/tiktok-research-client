@@ -1,1 +1,1 @@
-"""TikTok Dynamics."""
+"""TikTok Research Client."""

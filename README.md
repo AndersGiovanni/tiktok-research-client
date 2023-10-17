@@ -24,6 +24,8 @@
 ## TikTok Research Client
 TikTok Research Client is a command-line tool for collecting data from TikTok using the TikTok Research API. This tool provides a streamlined way to fetch information about users, search for videos by, and collect comments on specific videos.
 
+YOU NEED TO HAVE ACCESS TO THE [TIKTOK RESEARCH API](https://developers.tiktok.com/products/research-api/) TO USE THIS TOOL.
+
 ## Requirements
 
 - Requires granted access to the [TikTok Research API](https://developers.tiktok.com/products/research-api/). Once permisison has been granted, fill out the `.env` file.
