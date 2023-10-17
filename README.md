@@ -139,7 +139,7 @@ please [file an issue] along with a detailed description.
 
 ## Known Issues
 
-Many. This is a super lightweight and simple client, and has not been tested extensively - actually not at all. Will do at some point. If the pre-defined CLI commands are insufficient, then just make your own query and use `query` function. 
+Many. This is a super lightweight and simple client, and has not been tested extensively - actually not at all. Will do at some point. If the pre-defined CLI commands are insufficient, then just make your own query and use `query` function.
 
 ## Credits
 
