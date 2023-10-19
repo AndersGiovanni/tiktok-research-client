@@ -5,6 +5,7 @@ from typing import Dict
 from typing import Union
 
 import click
+from dotenv import load_dotenv
 from halo import Halo  # type: ignore
 
 from tiktok_research_client.config import DATA_COMMENTS_DIR
@@ -59,6 +60,8 @@ def main(
         ValueError: Invalid query option
     """
     client = TiktokClient()
+
+    load_dotenv()
 
     logging.info("Starting data collection...")
     logging.debug(f"Query option: {query_option}")
