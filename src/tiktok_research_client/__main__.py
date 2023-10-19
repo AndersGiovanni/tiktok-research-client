@@ -1,5 +1,6 @@
 """Command-line interface."""
 import logging
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import Union
@@ -8,9 +9,6 @@ import click
 from dotenv import load_dotenv
 from halo import Halo  # type: ignore
 
-from tiktok_research_client.config import DATA_COMMENTS_DIR
-from tiktok_research_client.config import DATA_SEARCH_DIR
-from tiktok_research_client.config import DATA_USER_DIR
 from tiktok_research_client.data_collection.collect import TiktokClient
 from tiktok_research_client.utils import save_json
 
@@ -76,7 +74,7 @@ def main(
         # Get user info
         user_data: Union[Dict[str, Any], None] = client.get_user(query_input)
         # Save to json
-        save_json(DATA_USER_DIR / f"{query_input}.json", user_data)
+        save_json(Path(".data/users") / f"{query_input}.json", user_data)
 
     elif query_option == "search":
         # Search keyword
@@ -90,7 +88,7 @@ def main(
             print("No data collected. Please try again.")
         else:
             save_json(
-                DATA_SEARCH_DIR / f"{query_input.replace(' ','_')}.json",
+                Path(".data/search") / f"{query_input.replace(' ','_')}.json",
                 search_data,
             )
 
@@ -101,7 +99,7 @@ def main(
         if len(comments_data) == 0:
             print("No data collected. Please try again.")
         else:
-            save_json(DATA_COMMENTS_DIR / f"{query_input}.json", comments_data)
+            save_json(Path(".data/comments") / f"{query_input}.json", comments_data)
 
     else:
         raise ValueError("Invalid query option")
