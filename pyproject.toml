@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tiktok-research-client"
-version = "0.0.2"
+version = "0.0.2a"
 description = "TikTok Research API Client"
 authors = ["Anders Giovanni Møller <andersgiovanni@gmail.com>"]
 license = "MIT"
