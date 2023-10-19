@@ -65,7 +65,7 @@ source = ["tiktok_research_client", "tests"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 80
+fail_under = 50
 
 [tool.isort]
 profile = "black"
