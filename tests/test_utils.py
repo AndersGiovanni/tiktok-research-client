@@ -1,13 +1,15 @@
+"""Test cases for general utilities."""
+
 import json
 import unittest
-from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
 from tiktok_research_client.utils import (
-    read_json,
-    save_json,
-    generate_date_ranges,
-)  # Replace 'your_module' with the actual module name
+    generate_date_ranges,  # Replace 'your_module' with the actual module name
+)
+from tiktok_research_client.utils import read_json
+from tiktok_research_client.utils import save_json
 
 
 class TestGeneralUtilities(unittest.TestCase):
@@ -31,7 +33,7 @@ class TestGeneralUtilities(unittest.TestCase):
             data = [{"key": "value"}]
             save_json(tmp_path, data)
 
-            with open(tmp_path, "r") as f:
+            with open(tmp_path) as f:
                 saved_data = json.load(f)
             self.assertEqual(saved_data, data)
 
