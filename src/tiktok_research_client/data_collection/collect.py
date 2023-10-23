@@ -118,6 +118,7 @@ class TiktokClient:
                 ]
             },
             "max_count": 100,
+            "is_random": True,
         }
 
         videos: List[Dict[str, str]] = list()
