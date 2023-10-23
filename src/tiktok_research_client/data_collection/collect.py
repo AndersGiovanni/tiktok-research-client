@@ -133,10 +133,12 @@ class TiktokClient:
                 break
 
             # Keep querying until there is no more data
-            output = self._cursor_iterator(url, query, max_size=max_size)
+            output = self._cursor_iterator(
+                url, query, max_size=max_size, is_random=True
+            )
 
             if output is not None:
-                videos.extend(self._cursor_iterator(url, query, max_size=max_size))
+                videos.extend(output)
 
         logging.info(f"Collected {len(videos)} videos.")
 
@@ -277,6 +279,7 @@ class TiktokClient:
                 ]
             },
             "max_count": 100,
+            "is_random": False,
         }
 
         videos: List[Dict[str, str]] = list()
@@ -286,7 +289,7 @@ class TiktokClient:
 
             query["end_date"] = end_date
 
-            videos.extend(self._cursor_iterator(url, query, max_size))
+            videos.extend(self._cursor_iterator(url, query, max_size, is_random=False))
 
         logging.debug("Decoding timestamps...")
         for idx, video in enumerate(videos):
@@ -297,7 +300,11 @@ class TiktokClient:
         return videos
 
     def _cursor_iterator(
-        self, url: str, query: Dict[str, Any], max_size: int = 1000
+        self,
+        url: str,
+        query: Dict[str, Any],
+        max_size: int = 1000,
+        is_random: bool = False,
     ) -> List[Dict[str, str]]:
         """Cursor iterator.
 
@@ -305,6 +312,7 @@ class TiktokClient:
             url (str): TikTok API url.
             query (Dict[str, Any]): Custom query. Follow the documentation from https://developers.tiktok.com/doc/research-api-specs-query-videos/
             max_size (int, optional): Max number of videos to collect. Defaults to 1000.
+            is_random (bool, optional): Whether to collect videos randomly. Defaults to False.
 
         Returns:
             List[Dict[str, str]]: List of videos.
@@ -321,14 +329,15 @@ class TiktokClient:
 
             data.extend(response["data"]["videos"])
 
-            has_more_data = response["data"]["has_more"]
+            if not is_random:
+                has_more_data = response["data"]["has_more"]
 
-            # Check if we have reached the max size or there is no more data
-            if not has_more_data:
-                return data
+                # Check if we have reached the max size or there is no more data
+                if not has_more_data:
+                    return data
 
-            query["cursor"] = response["data"]["cursor"]
+                query["cursor"] = response["data"]["cursor"]
 
-            query["search_id"] = response["data"]["search_id"]
+                query["search_id"] = response["data"]["search_id"]
 
         return data
